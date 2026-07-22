@@ -9,21 +9,21 @@ import {
 } from "./agents";
 
 const profiles: OfficeProfileInput[] = [
-  { id: "default", name: "default", gatewayRunning: true },
+  { id: "default", name: "Primary Agent", gatewayRunning: true },
   {
-    id: "code-monkey-dashboard",
-    name: "code-monkey-dashboard",
+    id: "build-agent",
+    name: "Build Agent",
     gatewayRunning: false,
   },
-  { id: "dashcraft", name: "dashcraft", gatewayRunning: true },
+  { id: "research-agent", name: "Research Agent", gatewayRunning: true },
 ];
 
 describe("Office Kanban activity", () => {
-  it("marks only assignees of running cards as working", () => {
+  it("matches running-card assignees to stable profile IDs", () => {
     const tasks: OfficeTaskInput[] = [
-      { assignee: "code-monkey-dashboard", status: "running" },
-      { assignee: " @CODE-MONKEY-DASHBOARD ", status: "running" },
-      { assignee: "dashcraft", status: "done" },
+      { assignee: "build-agent", status: "running" },
+      { assignee: " @BUILD-AGENT ", status: "running" },
+      { assignee: "research-agent", status: "done" },
       { assignee: null, status: "running" },
     ];
 
@@ -38,11 +38,11 @@ describe("Office Kanban activity", () => {
     ).toEqual([
       { id: "default", status: "idle", activeTaskCount: 0 },
       {
-        id: "code-monkey-dashboard",
+        id: "build-agent",
         status: "working",
         activeTaskCount: 2,
       },
-      { id: "dashcraft", status: "idle", activeTaskCount: 0 },
+      { id: "research-agent", status: "idle", activeTaskCount: 0 },
     ]);
   });
 
@@ -58,11 +58,15 @@ describe("Office Kanban activity", () => {
     ).toEqual([
       { id: "default", status: "working", activeTaskCount: undefined },
       {
-        id: "code-monkey-dashboard",
+        id: "build-agent",
         status: "idle",
         activeTaskCount: undefined,
       },
-      { id: "dashcraft", status: "working", activeTaskCount: undefined },
+      {
+        id: "research-agent",
+        status: "working",
+        activeTaskCount: undefined,
+      },
     ]);
   });
 
