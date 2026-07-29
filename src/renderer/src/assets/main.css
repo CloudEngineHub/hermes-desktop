@@ -4692,10 +4692,13 @@ body:has(.shell-vibrant),
   color: var(--text-secondary);
   background: color-mix(in srgb, var(--text-primary) 10%, transparent);
 }
-/* Block removes the inline-SVG baseline gap that otherwise makes the bolt sit
-   low; the lucide Zap glyph is centred in its own viewBox. */
+/* `display:block` removes the inline-SVG baseline gap that otherwise makes the
+   bolt sit low. The lucide Zap is geometrically centred in its viewBox, but its
+   thin right arm pulls the geometric centre right of the visual mass, so the
+   bolt reads as left-shifted — a 1px nudge optically re-centres it in the chip. */
 .chat-fast-popover-icon svg {
   display: block;
+  transform: translateX(1px);
 }
 /* On state: a solid amber badge with a dark glyph — high contrast, and it
    signals "active" the way the toggle button does. */
