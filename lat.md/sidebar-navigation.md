@@ -140,6 +140,16 @@ A single global modal (80vw × 80vh) with a grouped left nav presents every app/
 
 The left nav is two labelled groups — **General** (Appearance, Language, Privacy, Connection, Data) and **Hermes Agent** (About & Updates, Community, Logs & Diagnostics) — and `SETTINGS_NAV`/`resolveSection` in [[src/renderer/src/components/settings/SettingsModal.tsx]] map ids to panes. Network settings (Force IPv4 + proxy) are not a separate tab: they apply to every outgoing connection, so they live as a `Network` subsection at the bottom of [[src/renderer/src/components/settings/ConnectionPane.tsx]], and `resolveSection` aliases the legacy `/settings network` argument to the Connection pane. All shared state, the config-load effect, and the mutation handlers live in [[src/renderer/src/components/settings/useSettingsData.ts#useSettingsData]] (relocated wholesale from the former `Settings` screen) and reach each pane through [[src/renderer/src/components/settings/SettingsDataContext.ts#useSettings]], so the panes (`AppearancePane`, `ConnectionPane`, `AboutPane`, …) stay purely presentational. One exception: `AppearancePane`'s hardware-acceleration field reads `getGpuStatus` from the preload bridge directly, because GPU state is per-launch main-process state rather than profile config (see [[main-process#GPU Fallback#User preference]]). The modal's chrome is `user-select: none` (drag-selection highlighting nav labels and field captions read as broken UI); form fields and `pre`/`code` output — notably the Logs pane — opt back into text selection so they stay copyable.
 
+The grouped Appearance preferences use one shared logical text/control grid in [[src/renderer/src/components/settings/AppearancePane.tsx]], so translated labels, wrapped hints, and differently sized controls keep a stable column and vertical alignment. The control column wraps long segment labels, stacks below the copy in narrow containers, and follows document direction for Arabic and Hebrew instead of relying on physical left/right positioning.
+
+### Long translated preference layout
+
+The Appearance preference markup and stylesheet must retain a shared responsive grid, shrinkable text/control cells, and wrapping segmented controls so long translations cannot restore the original independent-row flex behavior.
+
+### RTL and narrow preference layout
+
+Appearance rows must use logical spacing and separators for RTL mirroring, while the narrow-container rule changes the shared grid to a stacked row and aligns controls at the logical start.
+
 ## Provisional fresh sessions
 
 Fresh chat session ids are provisional until a turn produces output or completes successfully, so provider errors do not create visible recent-session rows.
