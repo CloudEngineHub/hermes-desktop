@@ -92,6 +92,7 @@ import {
   runHermesAuthLogin,
   cancelHermesAuthLogin,
   detectDeviceCode,
+  OAUTH_LOGIN_PROVIDERS,
 } from "../hermes-auth";
 import { startDeviceLogin, cancelDeviceLogin } from "../hermes-account";
 import {
@@ -171,6 +172,7 @@ import {
   getModelConfig,
   setModelConfig,
   getCredentialPool,
+  hasOAuthCredentials,
   setCredentialPool,
   addCredentialPoolEntry,
   getConnectionConfig,
@@ -842,6 +844,16 @@ export function registerIpcHandlers(context: IpcContext): void {
     );
   });
   ipcMain.handle("oauth-login-cancel", () => cancelHermesAuthLogin());
+  ipcMain.handle(
+    "get-oauth-provider-statuses",
+    (_event, profile?: string): Record<string, boolean> =>
+      Object.fromEntries(
+        OAUTH_LOGIN_PROVIDERS.map((provider) => [
+          provider,
+          hasOAuthCredentials(provider, profile),
+        ]),
+      ),
+  );
 
   // Hermes account sign-in — OAuth 2.0 Device Authorization Grant against the
   // Hermes backend. Streams progress to the renderer's modal, opens the browser

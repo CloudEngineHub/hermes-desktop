@@ -36,7 +36,13 @@ The **MODEL** section shows a read-only summary (logo + provider label + model).
 
 That modal (`model-select-modal`) is styled **light-based** (no strokes): the container border, header/footer dividers, and control outlines are dropped in favor of filled controls (`--bg-elevated`, `--bg-hover` on hover/open) — matching the branded config modal's treatment. Crucially it sets `overflow: visible` (the base `.models-modal` clips with `overflow: hidden`), so the `LogoSelect` dropdown — which is absolutely positioned and can extend past the modal — isn't clipped; the menu itself caps at `max-height` and scrolls internally when the provider list is long. Without the override the lower providers were hidden and unreachable.
 
-The provider list (`pickerProviders`) is sourced from the **configured providers** — the same set shown as LLM cards — NOT from which providers happen to have saved models: keyed FieldDef providers (`env[f.key]` set, in FieldDef order so Hermes One leads) plus named custom providers whose `customProviderEnvKey(label)` is set. So a freshly-keyed provider with no models yet still appears.
+The provider list (`pickerProviders`) is sourced from the **configured providers**, NOT from which providers happen to have saved models: keyed FieldDef providers, authenticated OAuth plans, plus named custom providers whose `customProviderEnvKey(label)` is set. So a newly configured provider with no models yet still appears.
+
+### Authenticated OAuth providers are selectable
+
+OAuth plans with usable `auth.json` credentials appear in the active-model picker even though they have no API-key environment variable.
+
+Each picker open asks the main process for a boolean status per supported OAuth provider, using [[src/main/config.ts#hasOAuthCredentials]] so both `providers` and `credential_pool` auth shapes and profile fallback work. Access and refresh tokens never enter renderer state. [[src/renderer/src/screens/Providers/provider-picker.ts#buildAuthenticatedOAuthPickerProviders]] merges authenticated plans with saved and discovered models, while deduplicating providers such as Nous that may also have an API key. [[tests/provider-picker.test.ts]] covers the keyless Codex-plan regression.
 
 ### Native keys without a setup card still route
 

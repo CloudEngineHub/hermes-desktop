@@ -265,6 +265,9 @@ interface HermesAPI {
     profile?: string,
   ) => Promise<{ success: boolean; error?: string }>;
   cancelOAuthLogin: () => Promise<boolean>;
+  getOAuthProviderStatuses: (
+    profile?: string,
+  ) => Promise<Record<string, boolean>>;
   onOAuthLoginProgress: (callback: (chunk: string) => void) => () => void;
 
   // Hermes account sign-in (device authorization grant)
