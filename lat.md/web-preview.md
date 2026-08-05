@@ -2,7 +2,7 @@
 
 The chat screen can open a split-screen [[src/renderer/src/screens/Chat/WebPreviewPanel.tsx#WebPreviewPanel]] — an embedded Electron `<webview>` with a browser toolbar and an inspect-element mode — so the agent's links and locally served apps render in-app instead of an external browser.
 
-It auto-opens when an in-app link is clicked or a web tool reports a URL, via the `web-preview:navigate` `CustomEvent` that [[src/renderer/src/screens/Chat/Chat.tsx]] listens for. Inspect mode injects a hover/click overlay into the page and feeds the picked element's pretty-printed HTML back into the chat input.
+It auto-opens when an in-app link is clicked or a web tool reports a URL, via the `web-preview:navigate` `CustomEvent` that [[src/renderer/src/screens/Chat/Chat.tsx]] listens for. Inspect mode injects a hover/click overlay, generates a unique CSS selector for the picked element, and inserts only that selector into the chat input.
 
 Same-document navigation keeps the current DOM ready. The panel updates its address and cancels any active inspection without clearing DOM readiness, because Electron does not emit another `dom-ready` after SPA `pushState`, `replaceState`, or hash navigation.
 

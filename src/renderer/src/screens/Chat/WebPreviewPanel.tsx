@@ -13,12 +13,7 @@ import { useI18n } from "../../components/useI18n";
 interface WebPreviewPanelProps {
   initialUrl: string;
   onClose: () => void;
-  onInspectElement?: (payload: {
-    tagName: string;
-    id: string;
-    className: string;
-    outerHTML: string;
-  }) => void;
+  onInspectElement?: (payload: { selector: string }) => void;
 }
 
 // Resizable panel bounds. Min keeps the toolbar usable; max leaves room for
@@ -84,6 +79,49 @@ const INSPECTOR_SCRIPT = `
 
   let hoveredElement = null;
 
+  function escapeCssIdentifier(value) {
+    if (window.CSS && typeof window.CSS.escape === 'function') {
+      return window.CSS.escape(value);
+    }
+    return value.replace(/[^a-zA-Z0-9_-]/g, function(char) {
+      return '\\\\' + char.codePointAt(0).toString(16) + ' ';
+    });
+  }
+
+  function getUniqueSelector(el) {
+    if (el.id) {
+      const idSelector = '#' + escapeCssIdentifier(el.id);
+      if (document.querySelectorAll(idSelector).length === 1) return idSelector;
+    }
+
+    const segments = [];
+    let current = el;
+    while (current && current.nodeType === Node.ELEMENT_NODE) {
+      let segment = current.tagName.toLowerCase();
+      const classes = Array.from(current.classList || [])
+        .filter(function(className) { return className && !className.startsWith('__hermes'); })
+        .map(escapeCssIdentifier);
+      if (classes.length) segment += '.' + classes.join('.');
+
+      const parent = current.parentElement;
+      if (parent) {
+        const sameTagSiblings = Array.from(parent.children).filter(function(sibling) {
+          return sibling.tagName === current.tagName;
+        });
+        if (sameTagSiblings.length > 1) {
+          segment += ':nth-of-type(' + (sameTagSiblings.indexOf(current) + 1) + ')';
+        }
+      }
+
+      segments.unshift(segment);
+      const candidate = segments.join(' > ');
+      if (document.querySelectorAll(candidate).length === 1) return candidate;
+      current = parent;
+    }
+
+    return segments.join(' > ');
+  }
+
   function onMouseMove(e) {
     const el = document.elementFromPoint(e.clientX, e.clientY);
     if (!el || el === overlay || el === label || el === document.body || el === document.documentElement) {
@@ -103,15 +141,7 @@ const INSPECTOR_SCRIPT = `
       overlay.style.height = rect.height + 'px';
       overlay.style.display = 'block';
 
-      let labelText = el.tagName.toLowerCase();
-      if (el.id) labelText += '#' + el.id;
-      
-      const classAttr = el.getAttribute('class');
-      if (classAttr && typeof classAttr === 'string') {
-        const classes = classAttr.split(/\\s+/).filter(c => c && !c.startsWith('__hermes')).join('.');
-        if (classes) labelText += '.' + classes;
-      }
-      
+      let labelText = getUniqueSelector(el);
       if (labelText.length > 50) labelText = labelText.substring(0, 47) + '...';
       label.textContent = labelText;
       label.style.display = 'block';
@@ -136,10 +166,7 @@ const INSPECTOR_SCRIPT = `
 
     if (hoveredElement) {
       const payload = {
-        tagName: hoveredElement.tagName.toLowerCase(),
-        id: hoveredElement.id || '',
-        className: hoveredElement.getAttribute('class') || '',
-        outerHTML: hoveredElement.outerHTML
+        selector: getUniqueSelector(hoveredElement)
       };
       console.log('__HERMES_INSPECT_RESULT__:' + JSON.stringify(payload));
     } else {

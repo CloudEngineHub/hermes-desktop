@@ -904,94 +904,9 @@ function Chat({
       }
     : null;
 
-  const prettyPrintHTML = (html: string): string => {
-    const formatNode = (node: Node, level: number = 0): string => {
-      const indent = "  ".repeat(level);
-      if (node.nodeType === Node.TEXT_NODE) {
-        const text = node.textContent?.trim();
-        return text ? `${indent}${text}\n` : "";
-      }
-      if (node.nodeType === Node.COMMENT_NODE) {
-        return `${indent}<!--${node.textContent}-->\n`;
-      }
-      if (node.nodeType === Node.ELEMENT_NODE) {
-        const el = node as Element;
-        const tagName = el.tagName.toLowerCase();
-        let attrs = "";
-        for (let i = 0; i < el.attributes.length; i++) {
-          const attr = el.attributes[i];
-          attrs += ` ${attr.name}="${attr.value}"`;
-        }
-        const isVoid = [
-          "area",
-          "base",
-          "br",
-          "col",
-          "embed",
-          "hr",
-          "img",
-          "input",
-          "link",
-          "meta",
-          "param",
-          "source",
-          "track",
-          "wbr",
-        ].includes(tagName);
-        if (isVoid) {
-          return `${indent}<${tagName}${attrs}>\n`;
-        }
-        if (
-          el.childNodes.length === 1 &&
-          el.firstChild?.nodeType === Node.TEXT_NODE
-        ) {
-          const text = el.firstChild.textContent?.trim();
-          return text
-            ? `${indent}<${tagName}${attrs}>${text}</${tagName}>\n`
-            : `${indent}<${tagName}${attrs}></${tagName}>\n`;
-        }
-        if (el.childNodes.length === 0) {
-          return `${indent}<${tagName}${attrs}></${tagName}>\n`;
-        }
-        let childrenHtml = "";
-        for (let i = 0; i < el.childNodes.length; i++) {
-          childrenHtml += formatNode(el.childNodes[i], level + 1);
-        }
-        return `${indent}<${tagName}${attrs}>\n${childrenHtml}${indent}</${tagName}>\n`;
-      }
-      return "";
-    };
-
-    try {
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(html, "text/html");
-      const body = doc.body;
-      if (body.childNodes.length > 0) {
-        let result = "";
-        for (let i = 0; i < body.childNodes.length; i++) {
-          result += formatNode(body.childNodes[i], 0);
-        }
-        return result.trim();
-      }
-    } catch (e) {
-      console.error("Failed to pretty print HTML", e);
-    }
-    return html;
-  };
-
-  const handleInspectElement = useCallback(
-    (payload: {
-      tagName: string;
-      id: string;
-      className: string;
-      outerHTML: string;
-    }) => {
-      const formattedHtml = prettyPrintHTML(payload.outerHTML);
-      const formatted = `Here is the HTML for the \`<${payload.tagName}>\` component to debug:\n\`\`\`html\n${formattedHtml}\n\`\`\``;
-      chatInputRef.current?.appendText(formatted);
-    },
-    [],
-  );
+  const handleInspectElement = useCallback((payload: { selector: string }) => {
+    chatInputRef.current?.appendText(payload.selector);
+  }, []);
 
   return (
     <div
