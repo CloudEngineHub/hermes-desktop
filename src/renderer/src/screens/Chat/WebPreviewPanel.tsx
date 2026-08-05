@@ -306,7 +306,10 @@ export const WebPreviewPanel = memo(function WebPreviewPanel({
       setInputUrl(url);
       updateNavigationState();
       setIsInspecting(false);
-      setIsDomReady(false);
+      // Same-document navigation (history.pushState/replaceState or a hash
+      // change) keeps the current DOM alive and does not emit another
+      // `dom-ready`. Marking it unready here permanently disabled inspector
+      // injection on hydrating SPAs such as Next.js localhost dev servers.
     };
 
     const handleDidFailLoad = (e: Event): void => {
