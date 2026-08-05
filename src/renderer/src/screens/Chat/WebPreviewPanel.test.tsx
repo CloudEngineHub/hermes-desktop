@@ -23,16 +23,60 @@ vi.mock("lucide-react", () => ({
   ExternalLink: () => null,
   Globe: () => null,
   MousePointerClick: () => null,
+  MessageCircle: () => null,
+  ArrowUp: () => null,
 }));
 
 import { WebPreviewPanel } from "./WebPreviewPanel";
 
-afterEach(cleanup);
+interface InspectionResult {
+  selector: string;
+  rect: { left: number; top: number; width: number; height: number };
+}
 
-describe("WebPreviewPanel inspector lifecycle", () => {
-  it("keeps inspector injection available after same-document navigation", async () => {
+function deferredInspection(): {
+  promise: Promise<InspectionResult | null>;
+  resolve: (value: InspectionResult | null) => void;
+} {
+  let resolve!: (value: InspectionResult | null) => void;
+  const promise = new Promise<InspectionResult | null>((done) => {
+    resolve = done;
+  });
+  return { promise, resolve };
+}
+
+function installInspectorBridge(
+  inspectWebPreview: ReturnType<typeof vi.fn>,
+  cancelWebPreviewInspection: ReturnType<typeof vi.fn>,
+): void {
+  Object.defineProperty(window, "hermesAPI", {
+    configurable: true,
+    value: {
+      inspectWebPreview,
+      cancelWebPreviewInspection,
+    } as unknown as typeof window.hermesAPI,
+  });
+}
+
+afterEach(() => {
+  cleanup();
+  Reflect.deleteProperty(window, "hermesAPI");
+  vi.restoreAllMocks();
+});
+
+describe("WebPreviewPanel annotation lifecycle", () => {
+  it("keeps annotation available after SPA navigation and submits selector plus comment", async () => {
+    const inspection = deferredInspection();
+    const inspectWebPreview = vi.fn(() => inspection.promise);
+    const cancelWebPreviewInspection = vi.fn().mockResolvedValue(undefined);
+    installInspectorBridge(inspectWebPreview, cancelWebPreviewInspection);
     const onInspectElement = vi.fn();
-    const { container, getByTitle } = render(
+    const {
+      container,
+      getByPlaceholderText,
+      getByTitle,
+      queryByPlaceholderText,
+    } = render(
       <WebPreviewPanel
         initialUrl="http://localhost:3000/"
         onClose={vi.fn()}
@@ -42,91 +86,123 @@ describe("WebPreviewPanel inspector lifecycle", () => {
     const webview = container.querySelector("webview") as HTMLElement & {
       canGoBack: () => boolean;
       canGoForward: () => boolean;
-      executeJavaScript: ReturnType<typeof vi.fn>;
+      getWebContentsId: () => number;
     };
     webview.canGoBack = () => false;
     webview.canGoForward = () => false;
-    webview.executeJavaScript = vi.fn().mockResolvedValue(undefined);
+    webview.getWebContentsId = () => 42;
 
-    act(() => {
-      webview.dispatchEvent(new Event("dom-ready"));
-    });
+    act(() => webview.dispatchEvent(new Event("dom-ready")));
 
     const navigation = new Event("did-navigate-in-page") as Event & {
       url: string;
     };
     navigation.url = "http://localhost:3000/#hydrated";
-    act(() => {
-      webview.dispatchEvent(navigation);
-    });
+    act(() => webview.dispatchEvent(navigation));
 
-    fireEvent.click(getByTitle("Inspect Element"));
-
+    fireEvent.click(getByTitle("Annotate page"));
     await waitFor(() => {
-      expect(webview.executeJavaScript).toHaveBeenCalledWith(
-        expect.stringContaining("__hermes_inspector_overlay"),
-      );
+      expect(inspectWebPreview).toHaveBeenCalledWith(42);
     });
 
-    const injectedScript = webview.executeJavaScript.mock.calls.find(
-      ([script]) =>
-        typeof script === "string" &&
-        script.includes("__hermes_inspector_overlay"),
-    )?.[0] as string;
-    expect(injectedScript).toContain("getUniqueSelector");
-    expect(injectedScript).not.toContain("outerHTML");
-    expect(() => new Function(injectedScript)).not.toThrow();
-
-    const selectedElement = document.createElement("h1");
-    selectedElement.id = "hero-heading";
-    document.body.appendChild(selectedElement);
-    const originalElementFromPoint = document.elementFromPoint;
-    Object.defineProperty(document, "elementFromPoint", {
-      configurable: true,
-      value: vi.fn(() => selectedElement),
-    });
-    const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
-
-    new Function(injectedScript)();
-    document.dispatchEvent(
-      new MouseEvent("mousemove", { clientX: 10, clientY: 10 }),
-    );
-    document.dispatchEvent(
-      new MouseEvent("click", { clientX: 10, clientY: 10 }),
-    );
-
-    const resultMessage = consoleSpy.mock.calls
-      .map(([message]) => message)
-      .find(
-        (message) =>
-          typeof message === "string" &&
-          message.startsWith("__HERMES_INSPECT_RESULT__:"),
-      );
-    expect(resultMessage).toBe(
-      '__HERMES_INSPECT_RESULT__:{"selector":"#hero-heading"}',
-    );
-
-    consoleSpy.mockRestore();
-    selectedElement.remove();
-    Object.defineProperty(document, "elementFromPoint", {
-      configurable: true,
-      value: originalElementFromPoint,
+    await act(async () => {
+      inspection.resolve({
+        selector: "#hero-heading",
+        rect: { left: 20, top: 30, width: 300, height: 80 },
+      });
+      await inspection.promise;
     });
 
-    const resultEvent = new Event("console-message") as Event & {
-      message: string;
-      sourceId: string;
-      line: number;
-    };
-    resultEvent.message = resultMessage as string;
-    resultEvent.sourceId = "";
-    resultEvent.line = 1;
-    act(() => {
-      webview.dispatchEvent(resultEvent);
+    const commentInput = await waitFor(() => {
+      const input = getByPlaceholderText("Add a comment…");
+      expect(input).toBe(document.activeElement);
+      return input;
     });
+    const outline = container.querySelector(".web-preview-annotation-outline");
+    expect(outline).toHaveStyle({
+      left: "20px",
+      top: "30px",
+      width: "300px",
+      height: "80px",
+    });
+
+    const submitButton = getByTitle("Add annotation to chat");
+    expect(submitButton).toBeDisabled();
+    fireEvent.change(commentInput, {
+      target: { value: "  Make this heading smaller  " },
+    });
+    expect(submitButton).not.toBeDisabled();
+    fireEvent.submit(commentInput.closest("form") as HTMLFormElement);
 
     expect(onInspectElement).toHaveBeenCalledWith({
       selector: "#hero-heading",
+      comment: "Make this heading smaller",
+    });
+    await waitFor(() => {
+      expect(queryByPlaceholderText("Add a comment…")).toBeNull();
+      expect(cancelWebPreviewInspection).toHaveBeenCalledWith(42);
+    });
+  });
+
+  it("ignores stale results and cancels the active isolated inspection", async () => {
+    const firstInspection = deferredInspection();
+    const secondInspection = deferredInspection();
+    const inspectWebPreview = vi
+      .fn()
+      .mockReturnValueOnce(firstInspection.promise)
+      .mockReturnValueOnce(secondInspection.promise);
+    const cancelWebPreviewInspection = vi.fn().mockResolvedValue(undefined);
+    installInspectorBridge(inspectWebPreview, cancelWebPreviewInspection);
+    const { container, getByPlaceholderText, getByTitle } = render(
+      <WebPreviewPanel
+        initialUrl="https://example.com/"
+        onClose={vi.fn()}
+        onInspectElement={vi.fn()}
+      />,
+    );
+    const webview = container.querySelector("webview") as HTMLElement & {
+      canGoBack: () => boolean;
+      canGoForward: () => boolean;
+      getWebContentsId: () => number;
+    };
+    webview.canGoBack = () => false;
+    webview.canGoForward = () => false;
+    webview.getWebContentsId = () => 77;
+
+    act(() => webview.dispatchEvent(new Event("dom-ready")));
+    fireEvent.click(getByTitle("Annotate page"));
+    await waitFor(() => expect(inspectWebPreview).toHaveBeenCalledTimes(1));
+
+    fireEvent.click(getByTitle("Stop annotating"));
+    await waitFor(() => {
+      expect(cancelWebPreviewInspection).toHaveBeenCalledWith(77);
+    });
+    fireEvent.click(getByTitle("Annotate page"));
+    await waitFor(() => expect(inspectWebPreview).toHaveBeenCalledTimes(2));
+
+    await act(async () => {
+      firstInspection.resolve({
+        selector: "#stale",
+        rect: { left: 0, top: 0, width: 10, height: 10 },
+      });
+      await firstInspection.promise;
+    });
+    expect(
+      container.querySelector(".web-preview-annotation-outline"),
+    ).toBeNull();
+
+    await act(async () => {
+      secondInspection.resolve({
+        selector: "#fresh",
+        rect: { left: 10, top: 10, width: 20, height: 20 },
+      });
+      await secondInspection.promise;
+    });
+    const input = await waitFor(() => getByPlaceholderText("Add a comment…"));
+    fireEvent.keyDown(input, { key: "Escape" });
+    await waitFor(() => {
+      expect(getByTitle("Annotate page")).toBeInTheDocument();
+      expect(cancelWebPreviewInspection).toHaveBeenCalledTimes(2);
     });
   });
 });

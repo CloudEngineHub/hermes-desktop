@@ -904,9 +904,14 @@ function Chat({
       }
     : null;
 
-  const handleInspectElement = useCallback((payload: { selector: string }) => {
-    chatInputRef.current?.appendText(payload.selector);
-  }, []);
+  const handleInspectElement = useCallback(
+    (payload: { selector: string; comment: string }) => {
+      chatInputRef.current?.appendText(
+        `Element: \`${payload.selector}\`\nComment: ${payload.comment}`,
+      );
+    },
+    [],
+  );
 
   return (
     <div

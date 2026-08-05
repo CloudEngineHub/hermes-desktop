@@ -1153,6 +1153,11 @@ interface HermesAPI {
 
   // Shell
   openExternal: (url: string) => Promise<void>;
+  inspectWebPreview: (webContentsId: number) => Promise<{
+    selector: string;
+    rect: { left: number; top: number; width: number; height: number };
+  } | null>;
+  cancelWebPreviewInspection: (webContentsId: number) => Promise<void>;
 
   // Backup / Import
   runHermesBackup: (
