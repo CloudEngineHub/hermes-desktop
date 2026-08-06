@@ -537,6 +537,13 @@ body {
     color 0.2s ease;
 }
 
+/* Chromium otherwise paints the operating system's accent-coloured focus ring
+   around any focused button or role=button surface. Hermes uses its own fill,
+   border, and selected states, so the native outline must never leak through. */
+:focus {
+  outline: none;
+}
+
 /* ----- App Shell ----- */
 .app {
   height: 100vh;
@@ -763,8 +770,24 @@ body:has(.shell-vibrant),
    ======================================================================== */
 
 .onboard-screen {
+  color-scheme: dark;
+  --bg-primary: #0d0f17;
+  --bg-secondary: #141824;
+  --bg-tertiary: #1b2030;
+  --bg-elevated: #202638;
+  --bg-hover: #252c40;
+  --bg-active: #2d354c;
+  --text-primary: #eef0f6;
+  --text-secondary: #adb4ca;
+  --text-muted: #7f879d;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-bright: rgba(255, 255, 255, 0.14);
+  --code-bg: #10131d;
+  --selection: rgba(120, 150, 255, 0.5);
   position: relative;
   overflow: hidden;
+  background: var(--bg-primary);
+  color: var(--text-primary);
   -webkit-user-select: none;
   user-select: none;
   cursor: default;
@@ -2661,6 +2684,11 @@ body:has(.shell-vibrant),
   color: var(--text-primary);
 }
 
+.sidebar-recent-session:focus-visible {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
 .sidebar-recent-session.active {
   /* Active state is shown by the bullet + text color only — no filled
      background (keeps the list visually quiet). */
@@ -2848,6 +2876,12 @@ body:has(.shell-vibrant),
 
 .sidebar-session-menu-item:hover {
   background: var(--bg-tertiary);
+}
+
+.sidebar-session-menu-item:focus-visible,
+.sidebar-session-menu-back:focus-visible {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
 }
 
 .sidebar-session-menu-item--danger {
@@ -3373,7 +3407,8 @@ body:has(.shell-vibrant),
   align-items: center;
   gap: 10px;
   padding: 14px 16px;
-  border-bottom: 1px solid color-mix(in srgb, var(--text-primary) 7%, transparent);
+  border-bottom: 1px solid
+    color-mix(in srgb, var(--text-primary) 7%, transparent);
 }
 .profile-switch-search-icon {
   flex-shrink: 0;
@@ -4995,6 +5030,23 @@ body:has(.shell-vibrant),
   background: var(--user-bubble);
   color: var(--user-bubble-text);
   border-bottom-right-radius: 4px;
+}
+
+/* Sent prompts use the same sanitized Markdown pipeline as agent responses.
+   Paragraphs retain literal line breaks so ordinary plain-text prompts keep
+   their original shape, while whitespace between structural elements stays
+   normal and does not create gaps between list/table rows. */
+.chat-user-markdown {
+  white-space: normal;
+}
+
+.chat-user-markdown p {
+  white-space: pre-wrap;
+}
+
+.chat-user-markdown a {
+  color: inherit;
+  text-decoration: underline;
 }
 
 .chat-bubble-agent {
@@ -11285,6 +11337,63 @@ body:has(.shell-vibrant),
   margin-bottom: 3px;
 }
 
+.settings-spellcheck-mode {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 0;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.settings-spellcheck-mode > input {
+  margin-top: 3px;
+}
+
+.settings-spellcheck-mode > span {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.settings-spellcheck-mode strong {
+  font-size: 13px;
+}
+
+.settings-spellcheck-mode small {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.settings-spellcheck-mode code {
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.settings-spellcheck-languages {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  max-height: 220px;
+  margin-top: 8px;
+  padding: 10px;
+  overflow-y: auto;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--text-primary) 5%, transparent);
+}
+
+.settings-spellcheck-languages label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  cursor: pointer;
+}
+
 @keyframes settings-spin {
   to {
     transform: rotate(360deg);
@@ -12199,6 +12308,108 @@ body:has(.shell-vibrant),
 .sessions-searchbar-clear {
   padding: 2px;
   color: var(--text-muted);
+}
+
+.sessions-filters {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sessions-type-filter {
+  display: inline-flex;
+  padding: 3px;
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+}
+
+.sessions-type-filter button {
+  appearance: none;
+  border: 0;
+  border-radius: calc(var(--radius-md) - 3px);
+  padding: 6px 12px;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sessions-type-filter button.active {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.16);
+}
+
+.sessions-source-filter {
+  position: relative;
+  margin-left: auto;
+}
+
+.sessions-source-filter summary {
+  list-style: none;
+  min-width: 112px;
+  padding: 7px 12px;
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+}
+
+.sessions-source-filter summary::-webkit-details-marker {
+  display: none;
+}
+
+.sessions-source-filter-menu {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 6px);
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 220px;
+  max-height: 260px;
+  padding: 8px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.28);
+}
+
+.sessions-source-filter-menu button,
+.sessions-source-filter-menu label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 8px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sessions-source-filter-menu button:hover,
+.sessions-source-filter-menu label:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.sessions-source-filter-menu label span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Loading & empty states */
