@@ -860,7 +860,12 @@ export function registerIpcHandlers(context: IpcContext): void {
       if (conn.mode === "remote") {
         return withRemoteDashboard(
           conn,
-          () => remoteGetOAuthProviderStatuses(conn, OAUTH_LOGIN_PROVIDERS),
+          () =>
+            remoteGetOAuthProviderStatuses(
+              conn,
+              OAUTH_LOGIN_PROVIDERS,
+              profile,
+            ),
           () => emptyOAuthProviderStatuses(OAUTH_LOGIN_PROVIDERS),
         );
       }

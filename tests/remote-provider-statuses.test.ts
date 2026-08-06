@@ -61,7 +61,7 @@ describe("remote OAuth provider statuses", () => {
 
   it("uses the direct Remote dashboard authentication boundary", async () => {
     const { url } = await startServer((req, res) => {
-      expect(req.url).toBe("/api/providers/oauth");
+      expect(req.url).toBe("/api/providers/oauth?profile=research");
       expect(req.headers["x-hermes-session-token"]).toBe("remote-token");
       res.setHeader("Content-Type", "application/json");
       res.end(
@@ -90,6 +90,7 @@ describe("remote OAuth provider statuses", () => {
           },
         },
         ["qwen-oauth", "openai-codex"],
+        "research",
       ),
     ).resolves.toEqual({ "qwen-oauth": true, "openai-codex": false });
   });

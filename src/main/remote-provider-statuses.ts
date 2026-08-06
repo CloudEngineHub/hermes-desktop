@@ -45,6 +45,7 @@ export function normalizeRemoteOAuthProviderStatuses(
 export async function remoteGetOAuthProviderStatuses(
   config: ConnectionConfig | RemoteSessionConfig,
   supportedProviders: readonly string[],
+  profile?: string,
 ): Promise<Record<string, boolean>> {
   const response =
     "mode" in config
@@ -52,6 +53,7 @@ export async function remoteGetOAuthProviderStatuses(
           config,
           "/api/providers/oauth",
           { timeoutMs: 20_000 },
+          profile,
         )
       : await remoteRequestJson<unknown>(config, "/api/providers/oauth", {
           timeoutMs: 20_000,
