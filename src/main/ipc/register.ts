@@ -234,6 +234,10 @@ import {
   remoteUpdateModel,
 } from "../remote-models";
 import {
+  emptyOAuthProviderStatuses,
+  remoteGetOAuthProviderStatuses,
+} from "../remote-provider-statuses";
+import {
   listModels,
   addModel,
   removeModel,
@@ -369,6 +373,7 @@ import {
   sshSetToolsetEnabled,
   sshSetMessagingPlatformToolsetEnabled,
   sshReadEnv,
+  sshGetOAuthProviderStatuses,
   sshSetEnvValue,
   sshGetConfigValue,
   sshSetConfigValue,
@@ -850,13 +855,37 @@ export function registerIpcHandlers(context: IpcContext): void {
   ipcMain.handle("oauth-login-cancel", () => cancelHermesAuthLogin());
   ipcMain.handle(
     "get-oauth-provider-statuses",
-    (_event, profile?: string): Record<string, boolean> =>
-      Object.fromEntries(
+    async (_event, profile?: string): Promise<Record<string, boolean>> => {
+      const conn = getConnectionConfig();
+      if (conn.mode === "remote") {
+        return withRemoteDashboard(
+          conn,
+          () => remoteGetOAuthProviderStatuses(conn, OAUTH_LOGIN_PROVIDERS),
+          () => emptyOAuthProviderStatuses(OAUTH_LOGIN_PROVIDERS),
+        );
+      }
+      if (conn.mode === "ssh" && conn.ssh) {
+        const sshProfile = activeSshProfile(profile);
+        return withSshDashboardSessions(
+          conn,
+          (config) =>
+            remoteGetOAuthProviderStatuses(config, OAUTH_LOGIN_PROVIDERS),
+          () =>
+            sshGetOAuthProviderStatuses(
+              conn.ssh,
+              OAUTH_LOGIN_PROVIDERS,
+              sshProfile,
+            ),
+          sshProfile,
+        );
+      }
+      return Object.fromEntries(
         OAUTH_LOGIN_PROVIDERS.map((provider) => [
           provider,
           hasOAuthCredentials(provider, profile),
         ]),
-      ),
+      );
+    },
   );
 
   // Hermes account sign-in — OAuth 2.0 Device Authorization Grant against the

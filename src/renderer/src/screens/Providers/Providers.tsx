@@ -616,7 +616,7 @@ function Providers({
     const [all, customs, oauthStatuses] = await Promise.all([
       window.hermesAPI.listModels() as Promise<LibModel[]>,
       window.hermesAPI.listCustomProviders(profile).catch(() => []),
-      window.hermesAPI.getOAuthProviderStatuses(profile),
+      window.hermesAPI.getOAuthProviderStatuses(profile).catch(() => ({})),
     ]);
     setLibModels(all);
     setCustomProviders(customs);
