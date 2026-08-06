@@ -25,6 +25,7 @@ import {
   useDashboardChatTransport,
 } from "./hooks/useDashboardChatTransport";
 import { useI18n } from "../../components/useI18n";
+import { useChatPreferences } from "../../components/ChatPreferencesProvider";
 import { buildChatTranscript } from "./transcriptUtils";
 import { ConfigHealthBanner } from "../../components/ConfigHealthBanner";
 import FollowUsModal from "../../components/FollowUsModal";
@@ -44,6 +45,7 @@ import type {
   AgentCommandsCatalogResponse,
   AgentSlashCommand,
 } from "./slash/types";
+import { shouldPlayCompletionSound } from "./chatNotifications";
 
 interface QueuedMessage {
   text: string;
@@ -126,6 +128,7 @@ function Chat({
   agentAppearance,
 }: ChatProps): React.JSX.Element {
   const { t } = useI18n();
+  const { completionSoundEnabled } = useChatPreferences();
   // Identity + appearance of the agent this conversation is with. Passed to the
   // transcript so idle avatars render the agent's profile picture (the loading
   // gif is only shown while a turn is generating).
@@ -150,10 +153,14 @@ function Chat({
   useEffect(() => {
     const wasLoading = prevLoadingRef.current;
     prevLoadingRef.current = isLoading;
-    if (!wasLoading || isLoading) return;
+    if (
+      !shouldPlayCompletionSound(wasLoading, isLoading, completionSoundEnabled)
+    ) {
+      return;
+    }
     // Agent just finished — play a short notification chime (shared context).
     playFinishChime();
-  }, [isLoading]);
+  }, [completionSoundEnabled, isLoading]);
   const [hermesSessionId, setHermesSessionId] = useState<string | null>(
     initialSessionId ?? null,
   );
