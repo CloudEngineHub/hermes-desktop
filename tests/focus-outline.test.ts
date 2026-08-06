@@ -7,8 +7,20 @@ const CSS = readFileSync(
   "utf-8",
 );
 
-describe("native focus outlines", () => {
-  it("suppresses the OS-accent Chromium outline globally", () => {
-    expect(CSS).toMatch(/\n:focus\s*\{\s*outline:\s*none;\s*\}/);
+describe("native focus treatment", () => {
+  it("suppresses pointer rings without hiding keyboard focus", () => {
+    expect(CSS).not.toMatch(/\n:focus\s*\{\s*outline:\s*none;\s*\}/);
+    expect(CSS).toMatch(
+      /:focus:not\(:focus-visible\)\s*\{\s*outline:\s*none;\s*\}/,
+    );
+
+    const keyboardRule = CSS.match(/\n:focus-visible\s*\{(?<body>[\s\S]*?)\n\}/)
+      ?.groups?.body;
+    expect(keyboardRule).toContain("outline: none");
+    expect(keyboardRule).toContain("box-shadow:");
+    expect(keyboardRule).toContain("inset 0 0 0 1px");
+    expect(keyboardRule).toContain("filter: brightness(1.08)");
+    expect(CSS).toContain("@media (prefers-contrast: more)");
+    expect(CSS).toContain("@media (forced-colors: active)");
   });
 });
