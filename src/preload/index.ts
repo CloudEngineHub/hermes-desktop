@@ -471,6 +471,12 @@ const hermesAPI = {
   testRemoteConnection: (url: string, apiKey?: string): Promise<boolean> =>
     ipcRenderer.invoke("test-remote-connection", url, apiKey),
 
+  connectRemoteGateway: (
+    url: string,
+    apiKey?: string,
+  ): Promise<{ connected: boolean; authMode: "token" | "oauth" }> =>
+    ipcRenderer.invoke("connect-remote-gateway", url, apiKey),
+
   probeRemoteAuthMode: (
     url: string,
   ): Promise<{ authMode: "token" | "oauth"; version: string | null }> =>
@@ -797,6 +803,15 @@ const hermesAPI = {
   gatewayStatus: (): Promise<boolean> => ipcRenderer.invoke("gateway-status"),
   setNativeAppearance: (source: "dark" | "light" | "system"): Promise<void> =>
     ipcRenderer.invoke("set-native-appearance", source),
+
+  getSpellCheckerInfo: (): Promise<{
+    available: string[];
+    selected: string[];
+    system: string[];
+  }> => ipcRenderer.invoke("get-spell-checker-info"),
+
+  setSpellCheckerLanguages: (languages: string[]): Promise<string[]> =>
+    ipcRenderer.invoke("set-spell-checker-languages", languages),
   dashboardStatus: (profile?: string): Promise<DashboardStatus> =>
     ipcRenderer.invoke("dashboard-status", profile),
   freshDashboardWsUrl: (profile?: string): Promise<string> =>
@@ -1557,6 +1572,16 @@ const hermesAPI = {
   // Shell
   openExternal: (url: string): Promise<void> =>
     ipcRenderer.invoke("open-external", url),
+
+  inspectWebPreview: (
+    webContentsId: number,
+  ): Promise<{
+    selector: string;
+    rect: { left: number; top: number; width: number; height: number };
+  } | null> => ipcRenderer.invoke("web-preview-inspect", webContentsId),
+
+  cancelWebPreviewInspection: (webContentsId: number): Promise<void> =>
+    ipcRenderer.invoke("web-preview-cancel-inspection", webContentsId),
 
   // Backup / Import
   runHermesBackup: (
