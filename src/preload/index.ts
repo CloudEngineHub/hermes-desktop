@@ -1569,6 +1569,16 @@ const hermesAPI = {
   openExternal: (url: string): Promise<void> =>
     ipcRenderer.invoke("open-external", url),
 
+  inspectWebPreview: (
+    webContentsId: number,
+  ): Promise<{
+    selector: string;
+    rect: { left: number; top: number; width: number; height: number };
+  } | null> => ipcRenderer.invoke("web-preview-inspect", webContentsId),
+
+  cancelWebPreviewInspection: (webContentsId: number): Promise<void> =>
+    ipcRenderer.invoke("web-preview-cancel-inspection", webContentsId),
+
   // Backup / Import
   runHermesBackup: (
     profile?: string,

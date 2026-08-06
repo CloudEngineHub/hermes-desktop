@@ -407,6 +407,10 @@ import {
   sshInspectHermesTarget,
   sshProvisionDockerTarget,
 } from "../ssh-docker";
+import {
+  cancelWebPreviewInspection,
+  inspectWebPreview,
+} from "../web-preview-inspector";
 
 export interface IpcContext {
   activeRuns: Map<string, () => void>;
@@ -3037,6 +3041,14 @@ export function registerIpcHandlers(context: IpcContext): void {
   ipcMain.handle("open-external", (_event, url: string) => {
     openExternalUrl(url);
   });
+  ipcMain.handle("web-preview-inspect", (event, webContentsId: unknown) =>
+    inspectWebPreview(event, webContentsId, getMainWindow),
+  );
+  ipcMain.handle(
+    "web-preview-cancel-inspection",
+    (event, webContentsId: unknown) =>
+      cancelWebPreviewInspection(event, webContentsId, getMainWindow),
+  );
 
   // Backup / Import
   ipcMain.handle("run-hermes-backup", (_event, profile?: string) =>
