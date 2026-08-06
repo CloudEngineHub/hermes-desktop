@@ -105,6 +105,11 @@ describe("New APIs from v0.8/v0.9 features", () => {
     expect(typeMethods).toContain("discoverMemoryProviders");
   });
 
+  it("has OAuth provider status API", () => {
+    expect(preloadMethods).toContain("getOAuthProviderStatuses");
+    expect(typeMethods).toContain("getOAuthProviderStatuses");
+  });
+
   it("has dashboard transport probe APIs", () => {
     expect(preloadMethods).toContain("dashboardStatus");
     expect(typeMethods).toContain("dashboardStatus");
